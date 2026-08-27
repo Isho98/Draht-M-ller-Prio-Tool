@@ -1,0 +1,187 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* adept& design tokens (Master-Prompt §0) */
+:root {
+  color-scheme: light;
+
+  --color-background: #ffffff;
+  --color-background-dark: #000000;
+  --color-text-primary: #111111;
+  --color-text-secondary: #6e6e73;
+  --color-border: #e5e5e5;
+  --color-surface: #f5f5f7;
+  --color-accent-active: #34c759;
+  --color-accent-active-dark: #2e7d32;
+  --color-error: #d93025;
+
+  --space-0: 4px;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 48px;
+  --sidebar-width: 240px;
+  --content-max-width: 960px;
+  --radius-button: 10px;
+  --transition-default: 200ms ease-in-out;
+
+  /* shadcn / tailwind bridge */
+  --background: var(--color-background);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-background);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-background);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-text-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-surface);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--color-surface);
+  --muted-foreground: var(--color-text-secondary);
+  --accent: var(--color-surface);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: var(--color-error);
+  --border: var(--color-border);
+  --input: var(--color-border);
+  --ring: var(--color-text-secondary);
+  --radius: var(--radius-button);
+  --selected: var(--color-accent-active);
+  --selected-foreground: #ffffff;
+  --sidebar: var(--color-surface);
+  --sidebar-foreground: var(--color-text-primary);
+  --sidebar-primary: var(--color-text-primary);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--color-surface);
+  --sidebar-accent-foreground: var(--color-text-primary);
+  --sidebar-border: var(--color-border);
+  --sidebar-ring: var(--color-text-secondary);
+  --chart-1: #111111;
+  --chart-2: #6e6e73;
+  --chart-3: #34c759;
+  --chart-4: #2e7d32;
+  --chart-5: #e5e5e5;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-background: #000000;
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #98989d;
+  --color-border: #38383a;
+  --color-surface: #1c1c1e;
+  --background: var(--color-background);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-text-primary);
+  --primary-foreground: #000000;
+  --secondary: var(--color-surface);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--color-surface);
+  --muted-foreground: var(--color-text-secondary);
+  --border: var(--color-border);
+  --input: var(--color-border);
+  --selected: var(--color-accent-active);
+  --selected-foreground: #000000;
+  --sidebar: var(--color-surface);
+  --sidebar-border: var(--color-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+    --color-background: #000000;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-border: #38383a;
+    --color-surface: #1c1c1e;
+    --background: var(--color-background);
+    --foreground: var(--color-text-primary);
+    --card: var(--color-surface);
+    --card-foreground: var(--color-text-primary);
+    --secondary: var(--color-surface);
+    --secondary-foreground: var(--color-text-primary);
+    --muted: var(--color-surface);
+    --muted-foreground: var(--color-text-secondary);
+    --border: var(--color-border);
+    --input: var(--color-border);
+    --selected: var(--color-accent-active);
+    --selected-foreground: #000000;
+    --sidebar: var(--color-surface);
+    --sidebar-border: var(--color-border);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-selected: var(--selected);
+  --color-selected-foreground: var(--selected-foreground);
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  .settings-field {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    column-gap: 24px;
+    align-items: center;
+    min-height: 40px;
+  }
+
+  .settings-field-error {
+    margin-left: 204px;
+  }
+}
