@@ -1,16 +1,9 @@
 import { randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
+import { AppError } from '@/lib/errors'
+import { logError, logEvent } from '@/lib/logging'
 
-export class AppError extends Error {
-  constructor(
-    public code: string,
-    message: string,
-    public status: number = 400,
-  ) {
-    super(message)
-    this.name = 'AppError'
-  }
-}
+export { AppError }
 
 export function createRequestId(): string {
   return randomUUID()
@@ -22,6 +15,7 @@ export function apiSuccess<T>(data: T, status = 200) {
 
 export function apiError(error: unknown, requestId?: string) {
   const id = requestId ?? createRequestId()
+  logError('api', error, { requestId: id })
 
   if (error instanceof AppError) {
     return NextResponse.json(
@@ -30,12 +24,11 @@ export function apiError(error: unknown, requestId?: string) {
     )
   }
 
-  console.error(`[${id}]`, error)
   return NextResponse.json(
     {
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'Ein unerwarteter Fehler ist aufgetreten.',
+        message: 'Ein unerwarteter Fehler ist aufgetreten. Bitte erneut versuchen. Die App bleibt bedienbar.',
         requestId: id,
       },
     },
@@ -51,6 +44,13 @@ export function withErrorHandling<T extends (...args: never[]) => Promise<Respon
     try {
       return await handler(...args)
     } catch (error) {
+      logEvent({
+        level: 'error',
+        module: 'api.handler',
+        code: error instanceof AppError ? error.code : 'UNCAUGHT',
+        message: error instanceof AppError ? error.message : 'Unabgefangener Fehler im API-Handler.',
+        context: { requestId },
+      })
       return apiError(error, requestId)
     }
   }) as T

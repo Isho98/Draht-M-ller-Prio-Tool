@@ -9,7 +9,8 @@ export const FIELD_LABELS: Record<CanonicalField, string> = {
   dueDate: 'Liefertermin',
   urgency: 'Dringlichkeit',
   startDate: 'Starttermin',
-  workstation: 'Arbeitsplatz',
+  workstation: 'Anlage',
+  remainingHours: 'Restlaufzeit (h)',
 }
 
 const ALIASES: Record<CanonicalField, string[]> = {
@@ -123,6 +124,21 @@ const ALIASES: Record<CanonicalField, string[]> = {
     'workstation',
     'resource',
     'ag',
+    'anlage',
+    'anlagen',
+    'anlagenbezeichnung',
+  ],
+  remainingHours: [
+    'restlaufzeit',
+    'restlaufzeitstunden',
+    'restlauf',
+    'reststunden',
+    'laufzeit',
+    'aufwand',
+    'stunden',
+    'hours',
+    'remaining',
+    'remaininghours',
   ],
 }
 
@@ -160,6 +176,6 @@ export function suggestMapping(columns: string[]): ColumnMapping {
 
 export function mappingNeedsReview(mapping: ColumnMapping): boolean {
   const hasIdentity = Boolean(mapping.orderId || mapping.article)
-  const hasPrioritySignal = Boolean(mapping.dueDate || mapping.urgency)
+  const hasPrioritySignal = Boolean(mapping.dueDate || mapping.urgency || mapping.remainingHours)
   return !hasIdentity || !hasPrioritySignal
 }

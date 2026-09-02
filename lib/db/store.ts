@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'fs/promises'
 import path from 'path'
 import { SEED_AREAS } from '@/lib/seed-data'
 import type { DbStore } from '@/lib/db/types'
+import { DEFAULT_FEINPLANUNG_SETTINGS } from '@/lib/modules/feinplanung/settings'
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const STORE_PATH = path.join(DATA_DIR, 'store.json')
@@ -50,6 +51,13 @@ function createDefaultStore(): DbStore {
     integrations: [],
     integrationSecrets: {},
     auditLogs: [],
+    feinplanung: {
+      ignoreMachines: [...DEFAULT_FEINPLANUNG_SETTINGS.ignoreMachines],
+      customerPriorities: [],
+      methodId: DEFAULT_FEINPLANUNG_SETTINGS.methodId,
+      weights: { ...DEFAULT_FEINPLANUNG_SETTINGS.weights },
+      weekdayCapacity: { ...DEFAULT_FEINPLANUNG_SETTINGS.weekdayCapacity },
+    },
   }
 }
 

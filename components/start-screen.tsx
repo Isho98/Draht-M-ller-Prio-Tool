@@ -23,19 +23,19 @@ export function StartScreen() {
 
   return (
     <main className="flex min-h-[calc(100svh-64px)] flex-col items-center justify-center px-8">
-      <div className="flex w-[320px] flex-col items-center">
-        <div className="flex size-24 items-center justify-center overflow-hidden rounded-2xl border border-border bg-secondary">
+      <div className="flex w-[384px] flex-col items-center">
+        <div className="flex size-[384px] items-center justify-center overflow-hidden">
           {settings.logoDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={settings.logoDataUrl} alt="Firmenlogo" className="size-full object-contain p-2" />
+            <img src={settings.logoDataUrl} alt="Firmenlogo" className="max-h-full max-w-full object-contain" />
           ) : (
-            <span className="text-sm text-muted-foreground">Logo</span>
+            <span className="text-base text-muted-foreground">Logo</span>
           )}
         </div>
 
         <p className="mt-2 text-[13px] tracking-wide text-muted-foreground">powered by adept&</p>
 
-        <div ref={menuRef} className="relative mt-8 w-full">
+        <div ref={menuRef} className="relative mx-auto mt-8 w-[320px]">
           <button
             type="button"
             aria-haspopup="listbox"

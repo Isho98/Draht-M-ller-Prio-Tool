@@ -1,4 +1,5 @@
 import type { Area, Integration } from '@/lib/types'
+import type { FeinplanungSettings } from '@/lib/modules/feinplanung/settings'
 
 export type DbUser = {
   id: string
@@ -28,4 +29,5 @@ export type DbStore = {
     payload: unknown
     timestamp: string
   }>
+  feinplanung?: FeinplanungSettings
 }

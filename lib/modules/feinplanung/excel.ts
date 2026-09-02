@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx'
 import { AppError } from '@/lib/api/server'
+import { assertExcelColumns, findColumn } from './schema'
 import type { ParsedTable, PrioritizedRow } from './types'
 
 const MAX_BYTES = 10 * 1024 * 1024
@@ -21,10 +22,6 @@ export function assertExcelFile(fileName: string, size: number) {
       400,
     )
   }
-}
-
-function isEmptyCell(value: unknown): boolean {
-  return value === null || value === undefined || String(value).trim() === ''
 }
 
 function cellToString(value: unknown): string {
@@ -54,38 +51,53 @@ export function parseExcelBuffer(buffer: Buffer, fileName: string): ParsedTable 
   } catch {
     throw new AppError(
       'INVALID_EXCEL',
-      'Die Excel-Datei ist beschädigt oder kein gültiges Tabellenformat.',
+      'Die Excel-Datei ist beschädigt oder kein gültiges Tabellenformat. Bitte eine andere Datei wählen.',
       400,
     )
   }
 
   const sheetName = workbook.SheetNames[0]
   if (!sheetName) {
-    throw new AppError('EMPTY_WORKBOOK', 'Die Datei enthält keine Tabelle.', 400)
+    throw new AppError('EMPTY_WORKBOOK', 'Die Datei enthält keine Tabelle. Bitte eine Datei mit mindestens einem Blatt wählen.', 400)
   }
 
-  const sheet = workbook.Sheets[sheetName]
-  const matrix = XLSX.utils.sheet_to_json<(string | number | Date | null)[]>(sheet, {
-    header: 1,
-    raw: false,
-    defval: '',
-    blankrows: false,
-  })
+  let matrix: (string | number | Date | null)[][]
+  try {
+    const sheet = workbook.Sheets[sheetName]
+    matrix = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      raw: false,
+      defval: '',
+      blankrows: false,
+    }) as (string | number | Date | null)[][]
+  } catch {
+    throw new AppError(
+      'SHEET_UNREADABLE',
+      'Die Tabelle konnte nicht gelesen werden. Bitte prüfen, ob die Datei geöffnet oder geschützt ist, und erneut versuchen.',
+      400,
+    )
+  }
 
-  const headerIndex = matrix.findIndex(
-    (row) => Array.isArray(row) && row.filter((cell) => !isEmptyCell(cell)).length >= 2,
-  )
+  const headerIndex = matrix.findIndex((row) => {
+    if (!Array.isArray(row)) return false
+    const cells = row.map((cell) => cellToString(cell).toLowerCase())
+    return cells.includes('prod-ende') && cells.includes('auftnr') && cells.includes('maschinen')
+  })
 
   if (headerIndex < 0) {
     throw new AppError(
       'NO_HEADER',
-      'In der Datei wurde keine Kopfzeile gefunden. Bitte die erste Zeile mit Spaltennamen versehen.',
+      'Die Kopfzeile mit Prod-Ende, AuftNr und Maschinen wurde nicht gefunden. Bitte eine Datei im bekannten Listenformat hochladen.',
       400,
     )
   }
 
   const headerRow = matrix[headerIndex].map((cell) => cellToString(cell))
   const columns = uniqueHeaders(headerRow)
+  assertExcelColumns(columns)
+
+  const prodCol = findColumn(columns, ['Prod-Ende'])
+  const auftCol = findColumn(columns, ['AuftNr'])
   const rows: Record<string, string>[] = []
 
   for (let i = headerIndex + 1; i < matrix.length; i++) {
@@ -98,7 +110,10 @@ export function parseExcelBuffer(buffer: Buffer, fileName: string): ParsedTable 
       record[column] = value
       if (value) hasValue = true
     })
-    if (hasValue) rows.push(record)
+    if (!hasValue) continue
+    const hasPosition = Boolean((prodCol && record[prodCol]) || (auftCol && record[auftCol]))
+    if (!hasPosition) continue
+    rows.push(record)
   }
 
   if (rows.length === 0) {
@@ -109,20 +124,28 @@ export function parseExcelBuffer(buffer: Buffer, fileName: string): ParsedTable 
 }
 
 export function buildExportWorkbook(rows: PrioritizedRow[], originalName: string): { filename: string; buffer: Buffer } {
-  const data = rows.map((row) => ({
-    Prio: row.rank,
-    Bewertung: row.score,
-    Begründung: row.reasons.join(' · '),
-    ...row.values,
-  }))
+  try {
+    const data = rows.map((row) => ({
+      Prio: row.rank,
+      Bewertung: row.score,
+      Begründung: row.reasons.join(' · '),
+      ...row.values,
+    }))
 
-  const worksheet = XLSX.utils.json_to_sheet(data)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Priorisierung')
-  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer
-  const base = originalName.replace(/\.(xlsx|xls)$/i, '')
-  return {
-    filename: `${base}_priorisiert.xlsx`,
-    buffer,
+    const worksheet = XLSX.utils.json_to_sheet(data)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Priorisierung')
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+    const base = originalName.replace(/\.(xlsx|xls)$/i, '') || 'export'
+    return {
+      filename: `${base}_priorisiert.xlsx`,
+      buffer,
+    }
+  } catch {
+    throw new AppError(
+      'EXPORT_FAILED',
+      'Der Export konnte nicht erstellt werden. Bitte erneut versuchen. Falls die Datei geöffnet ist, zuerst schließen.',
+      500,
+    )
   }
 }

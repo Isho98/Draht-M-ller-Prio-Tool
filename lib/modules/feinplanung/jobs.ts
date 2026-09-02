@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import { AppError } from '@/lib/api/server'
-import type { ColumnMapping, ParsedTable, PrioritizeResult } from './types'
+import type { ParsedTable, PlanningOrder, PrioritizeResult } from './types'
 
 const TTL_MS = 60 * 60 * 1000
 
@@ -8,9 +8,10 @@ export type PlanningJob = {
   id: string
   createdAt: number
   table: ParsedTable
-  suggestedMapping: ColumnMapping
-  mapping: ColumnMapping
   result: PrioritizeResult | null
+  methodId: string
+  orders: PlanningOrder[]
+  completedOrders: PlanningOrder[]
 }
 
 const jobs = new Map<string, PlanningJob>()
@@ -22,15 +23,20 @@ function gc() {
   }
 }
 
-export function saveJob(table: ParsedTable, suggestedMapping: ColumnMapping): PlanningJob {
+/** Session store for imported orders. Swap for a DB-backed repository later. */
+export function saveJob(
+  table: ParsedTable,
+  extras?: { methodId?: string; orders?: PlanningOrder[]; completedOrders?: PlanningOrder[] },
+): PlanningJob {
   gc()
   const job: PlanningJob = {
     id: randomUUID(),
     createdAt: Date.now(),
     table,
-    suggestedMapping,
-    mapping: suggestedMapping,
     result: null,
+    methodId: extras?.methodId ?? 'capacity-deadline',
+    orders: extras?.orders ?? [],
+    completedOrders: extras?.completedOrders ?? [],
   }
   jobs.set(job.id, job)
   return job
@@ -49,7 +55,10 @@ export function getJob(id: string): PlanningJob {
   return job
 }
 
-export function updateJob(id: string, patch: Partial<Pick<PlanningJob, 'mapping' | 'result'>>): PlanningJob {
+export function updateJob(
+  id: string,
+  patch: Partial<Pick<PlanningJob, 'result' | 'methodId' | 'orders' | 'completedOrders'>>,
+): PlanningJob {
   const job = getJob(id)
   const next = { ...job, ...patch }
   jobs.set(id, next)

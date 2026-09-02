@@ -184,4 +184,39 @@
   .settings-field-error {
     margin-left: 204px;
   }
+
+  .adept-intro-text {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 90px;
+    font-weight: bold;
+  }
+
+  .adept-intro-static {
+    fill: var(--color-text-primary);
+  }
+
+  .adept-intro-amp {
+    fill: rgba(26, 26, 26, 0);
+    stroke: var(--color-text-primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 800;
+    stroke-dashoffset: 800;
+    animation:
+      adept-zeichnen 1.3s ease-in-out forwards,
+      adept-auffuellen 0.4s ease-in-out 1s forwards;
+  }
+}
+
+@keyframes adept-zeichnen {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes adept-auffuellen {
+  to {
+    fill: var(--color-text-primary);
+  }
 }

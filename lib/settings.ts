@@ -49,6 +49,12 @@ export function loadSettings(): AppSettings {
 }
 
 export function saveSettings(settings: AppSettings) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-  window.dispatchEvent(new Event('adept-settings-changed'))
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    window.dispatchEvent(new Event('adept-settings-changed'))
+  } catch {
+    window.dispatchEvent(new CustomEvent('adept-settings-error', {
+      detail: 'Einstellungen konnten nicht gespeichert werden. Speicherplatz oder Browserrechte prüfen.',
+    }))
+  }
 }
