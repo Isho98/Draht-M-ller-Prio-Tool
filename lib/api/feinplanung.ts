@@ -12,6 +12,7 @@ export type UploadResponse = {
   columns: string[]
   doneColumns?: string[]
   result: PrioritizeResult
+  orders: PlanningOrder[]
 }
 
 async function parseApiError(response: Response): Promise<ApiClientError> {
@@ -28,10 +29,14 @@ async function parseApiError(response: Response): Promise<ApiClientError> {
   return new ApiClientError('REQUEST_FAILED', 'Die Anfrage konnte nicht verarbeitet werden.', undefined, response.status)
 }
 
-export async function uploadPlanningFile(file: File, options?: { methodId?: string }): Promise<UploadResponse> {
+export async function uploadPlanningFile(
+  file: File,
+  options?: { methodId?: string; settings?: FeinplanungSettings },
+): Promise<UploadResponse> {
   const form = new FormData()
   form.append('file', file)
   if (options?.methodId) form.append('methodId', options.methodId)
+  if (options?.settings) form.append('settings', JSON.stringify(options.settings))
   const response = await fetch('/api/v1/feinplanung/upload', {
     method: 'POST',
     body: form,
@@ -41,11 +46,16 @@ export async function uploadPlanningFile(file: File, options?: { methodId?: stri
   return json.data
 }
 
-export async function prioritizeJob(jobId: string, options?: { methodId?: string }): Promise<PrioritizeResult> {
+export async function prioritizeJob(input: {
+  jobId?: string
+  orders: PlanningOrder[]
+  methodId?: string
+  settings?: FeinplanungSettings
+}): Promise<PrioritizeResult> {
   const response = await fetch('/api/v1/feinplanung/prioritize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jobId, ...options }),
+    body: JSON.stringify(input),
   })
   if (!response.ok) throw await parseApiError(response)
   const json = (await response.json()) as { data: PrioritizeResult }
@@ -54,8 +64,15 @@ export async function prioritizeJob(jobId: string, options?: { methodId?: string
 
 export async function previewOrders(
   orders: PlanningOrder[],
-  options?: { methodId?: string },
-): Promise<{ jobId: string; fileName: string; columns: string[]; doneColumns?: string[]; result: PrioritizeResult }> {
+  options?: { methodId?: string; settings?: FeinplanungSettings },
+): Promise<{
+  jobId: string
+  fileName: string
+  columns: string[]
+  doneColumns?: string[]
+  result: PrioritizeResult
+  orders: PlanningOrder[]
+}> {
   const response = await fetch('/api/v1/feinplanung/preview', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -69,16 +86,20 @@ export async function previewOrders(
       columns: string[]
       doneColumns?: string[]
       result: PrioritizeResult
+      orders: PlanningOrder[]
     }
   }
   return json.data
 }
 
-export async function exportJob(jobId: string): Promise<{ blob: Blob; filename: string }> {
+export async function exportJob(
+  jobId: string,
+  extras?: { fileName?: string; rows?: PrioritizeResult['rows'] },
+): Promise<{ blob: Blob; filename: string }> {
   const response = await fetch('/api/v1/feinplanung/export', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jobId }),
+    body: JSON.stringify({ jobId, ...extras }),
   })
   if (!response.ok) throw await parseApiError(response)
   const blob = await response.blob()

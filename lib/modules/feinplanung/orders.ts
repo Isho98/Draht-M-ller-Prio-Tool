@@ -19,6 +19,22 @@ export function emptyCanonical(): CanonicalValues {
   }
 }
 
+export function normalizePlanningOrders(orders: PlanningOrder[]): PlanningOrder[] {
+  return orders.map((order, index) => ({
+    ...order,
+    id: order.id || `row-${index}`,
+    name: order.name?.trim() || `Position ${index + 1}`,
+    customer: order.customer ?? '',
+    article: order.article ?? '',
+    dueDate: order.dueDate ?? '',
+    statusF: order.statusF ?? '',
+    completed: Boolean(order.completed || order.statusF),
+    machines: order.machines ?? [],
+    extra: order.extra ?? {},
+    sourceIndex: Number.isFinite(order.sourceIndex) ? order.sourceIndex : index,
+  }))
+}
+
 export function rowsToPlanningOrders(rows: Record<string, string>[]): PlanningOrder[] {
   const columns = coreColumnMap([...new Set(rows.flatMap((row) => Object.keys(row)))])
 

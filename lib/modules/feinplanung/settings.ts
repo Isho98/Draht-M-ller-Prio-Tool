@@ -86,3 +86,21 @@ export function sanitizeIgnoreList(values: string[]): string[] {
   }
   return result
 }
+
+export function mergeFeinplanungSettings(
+  current: FeinplanungSettings,
+  patch: Partial<FeinplanungSettings>,
+): FeinplanungSettings {
+  return {
+    ...current,
+    ...patch,
+    ignoreMachines: sanitizeIgnoreList(patch.ignoreMachines ?? current.ignoreMachines),
+    customerPriorities: (patch.customerPriorities ?? current.customerPriorities).map((entry) => ({
+      ...entry,
+      name: entry.name.trim(),
+      percent: sanitizePercent(entry.percent),
+    })),
+    weights: { ...current.weights, ...patch.weights },
+    weekdayCapacity: { ...current.weekdayCapacity, ...patch.weekdayCapacity },
+  }
+}

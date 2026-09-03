@@ -23,7 +23,7 @@ import {
 import { downloadBlob, saveAsBlob, writeFileToDirectory } from '@/lib/fs-export'
 import { useAppState } from '@/components/app-state'
 import { SHOW_TEST_PREVIEW } from '@/lib/modules/feinplanung/preview-flag'
-import { DEFAULT_FEINPLANUNG_SETTINGS, type FeinplanungSettings } from '@/lib/modules/feinplanung/settings'
+import { DEFAULT_FEINPLANUNG_SETTINGS, mergeFeinplanungSettings, type FeinplanungSettings } from '@/lib/modules/feinplanung/settings'
 import { DASHBOARD_COLUMNS, DONE_COLUMNS } from '@/lib/modules/feinplanung/schema'
 import type { PlanningOrder, PrioritizeResult } from '@/lib/modules/feinplanung/types'
 
@@ -57,7 +57,7 @@ export function FeinplanungScreen() {
     setWarnings([])
     try {
       setStatus('Aufträge werden priorisiert…')
-      const data = await uploadPlanningFile(file, { methodId: fpSettings.methodId })
+      const data = await uploadPlanningFile(file, { methodId: fpSettings.methodId, settings: fpSettings })
       setUpload(data)
       setResult(data.result)
       setWarnings(data.result.warnings ?? [])
@@ -71,14 +71,14 @@ export function FeinplanungScreen() {
       setBusy(false)
       setStatus(null)
     }
-  }, [fpSettings.methodId])
+  }, [fpSettings])
 
   async function handlePreview(orders: PlanningOrder[]) {
     setBusy(true)
     setError(null)
     setNotice(null)
     try {
-      const data = await previewOrders(orders, { methodId: fpSettings.methodId })
+      const data = await previewOrders(orders, { methodId: fpSettings.methodId, settings: fpSettings })
       setUpload({
         jobId: data.jobId,
         fileName: data.fileName,
@@ -89,6 +89,7 @@ export function FeinplanungScreen() {
         columns: data.columns,
         doneColumns: data.doneColumns,
         result: data.result,
+        orders: data.orders,
       })
       setResult(data.result)
       setWarnings(data.result.warnings ?? [])
@@ -102,27 +103,39 @@ export function FeinplanungScreen() {
   }
 
   async function handleSettingsChange(patch: Partial<FeinplanungSettings>) {
+    const next = mergeFeinplanungSettings(fpSettings, patch)
+    setFpSettings(next)
     setError(null)
     try {
-      const next = await saveFeinplanungSettings(patch)
-      setFpSettings(next)
-      if (upload) {
-        const refreshed = await prioritizeJob(upload.jobId, { methodId: next.methodId })
-        setResult(refreshed)
-        setWarnings(refreshed.warnings ?? [])
-      }
+      await saveFeinplanungSettings(patch)
+    } catch {
+      // On Vercel another instance may not share settings; the next calculation still uses local next.
+    }
+    if (!upload?.orders?.length) return
+    try {
+      const refreshed = await prioritizeJob({
+        jobId: upload.jobId,
+        orders: upload.orders,
+        methodId: next.methodId,
+        settings: next,
+      })
+      setResult(refreshed)
+      setWarnings(refreshed.warnings ?? [])
     } catch (err) {
       setError(getUserFacingMessage(err))
     }
   }
 
   async function handleExport(mode: 'default' | 'save-as') {
-    if (!upload) return
+    if (!upload || !result) return
     setBusy(true)
     setError(null)
     setNotice(null)
     try {
-      const { blob, filename } = await exportJob(upload.jobId)
+      const { blob, filename } = await exportJob(upload.jobId, {
+        fileName: upload.fileName,
+        rows: result.rows,
+      })
       if (mode === 'save-as') {
         const ok = await saveAsBlob(blob, filename)
         if (ok) setNotice('Datei gespeichert.')

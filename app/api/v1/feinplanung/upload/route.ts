@@ -4,6 +4,7 @@ import { logEvent } from '@/lib/logging'
 import { getFeinplanungSettings } from '@/lib/db/repositories/feinplanung'
 import { assertExcelFile, parseExcelBuffer, saveJob } from '@/lib/modules/feinplanung'
 import { prioritizeTableRows } from '@/lib/modules/feinplanung/service'
+import { mergeFeinplanungSettings, type FeinplanungSettings } from '@/lib/modules/feinplanung/settings'
 import { DASHBOARD_COLUMNS, DONE_COLUMNS } from '@/lib/modules/feinplanung/schema'
 
 export const runtime = 'nodejs'
@@ -22,7 +23,15 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     throw new AppError('NO_FILE', 'Bitte eine Excel-Datei auswählen.', 400)
   }
 
-  const settings = await getFeinplanungSettings()
+  const stored = await getFeinplanungSettings()
+  let clientSettings: Partial<FeinplanungSettings> = {}
+  try {
+    const raw = form.get('settings')
+    if (typeof raw === 'string' && raw) clientSettings = JSON.parse(raw) as Partial<FeinplanungSettings>
+  } catch {
+    clientSettings = {}
+  }
+  const settings = mergeFeinplanungSettings(stored, clientSettings)
   const methodId = String(form.get('methodId') || settings.methodId)
 
   assertExcelFile(file.name, file.size)
@@ -59,5 +68,6 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     columns: [...DASHBOARD_COLUMNS],
     doneColumns: [...DONE_COLUMNS],
     result,
+    orders: [...open, ...done],
   })
 })

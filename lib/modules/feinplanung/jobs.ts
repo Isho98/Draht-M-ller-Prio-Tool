@@ -70,9 +70,13 @@ export function saveJob(
   return job
 }
 
-export function getJob(id: string): PlanningJob {
+export function findJob(id: string): PlanningJob | null {
   gc()
-  const job = jobs.get(id)
+  return jobs.get(id) ?? null
+}
+
+export function getJob(id: string): PlanningJob {
+  const job = findJob(id)
   if (!job) {
     throw new AppError(
       'JOB_NOT_FOUND',
