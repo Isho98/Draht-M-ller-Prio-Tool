@@ -43,7 +43,10 @@ export function FeinplanungScreen() {
   useEffect(() => {
     getFeinplanungSettings()
       .then(setFpSettings)
-      .catch(() => setFpSettings(DEFAULT_FEINPLANUNG_SETTINGS))
+      .catch((err) => {
+        setFpSettings(DEFAULT_FEINPLANUNG_SETTINGS)
+        setError(getUserFacingMessage(err))
+      })
   }, [])
 
   const handleFile = useCallback(async (file: File) => {

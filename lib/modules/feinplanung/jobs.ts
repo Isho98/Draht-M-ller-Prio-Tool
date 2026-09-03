@@ -1,8 +1,12 @@
 import { randomUUID } from 'crypto'
+import { mkdirSync, readFileSync, writeFileSync } from 'fs'
+import path from 'path'
 import { AppError } from '@/lib/api/server'
+import { getDataDir } from '@/lib/db/paths'
 import type { ParsedTable, PlanningOrder, PrioritizeResult } from './types'
 
 const TTL_MS = 60 * 60 * 1000
+const JOBS_PATH = path.join(getDataDir(), 'jobs.json')
 
 export type PlanningJob = {
   id: string
@@ -15,8 +19,31 @@ export type PlanningJob = {
 }
 
 const jobs = new Map<string, PlanningJob>()
+let hydrated = false
+
+function persistJobs() {
+  try {
+    mkdirSync(getDataDir(), { recursive: true })
+    writeFileSync(JOBS_PATH, JSON.stringify([...jobs.values()]))
+  } catch {
+    // Serverless/read-only filesystem: in-memory map is enough for this instance.
+  }
+}
+
+function hydrateJobs() {
+  if (hydrated) return
+  hydrated = true
+  try {
+    const raw = readFileSync(JOBS_PATH, 'utf8')
+    const list = JSON.parse(raw) as PlanningJob[]
+    for (const job of list) jobs.set(job.id, job)
+  } catch {
+    // no persisted jobs yet
+  }
+}
 
 function gc() {
+  hydrateJobs()
   const cutoff = Date.now() - TTL_MS
   for (const [id, job] of jobs) {
     if (job.createdAt < cutoff) jobs.delete(id)
@@ -39,6 +66,7 @@ export function saveJob(
     completedOrders: extras?.completedOrders ?? [],
   }
   jobs.set(job.id, job)
+  persistJobs()
   return job
 }
 
@@ -62,5 +90,6 @@ export function updateJob(
   const job = getJob(id)
   const next = { ...job, ...patch }
   jobs.set(id, next)
+  persistJobs()
   return next
 }

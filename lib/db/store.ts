@@ -1,11 +1,12 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import path from 'path'
+import { getDataDir } from '@/lib/db/paths'
 import { SEED_AREAS } from '@/lib/seed-data'
 import type { DbStore } from '@/lib/db/types'
 import { DEFAULT_FEINPLANUNG_SETTINGS } from '@/lib/modules/feinplanung/settings'
 
-const DATA_DIR = path.join(process.cwd(), 'data')
+const DATA_DIR = getDataDir()
 const STORE_PATH = path.join(DATA_DIR, 'store.json')
 
 const DEMO_TENANT_ID = 'tenant-demo'
@@ -71,7 +72,6 @@ export async function readStore(): Promise<DbStore> {
     memoryStore = JSON.parse(raw) as DbStore
     return memoryStore
   } catch {
-    await mkdir(DATA_DIR, { recursive: true })
     const store = createDefaultStore()
     await writeStore(store)
     return store
@@ -80,8 +80,12 @@ export async function readStore(): Promise<DbStore> {
 
 export async function writeStore(store: DbStore): Promise<void> {
   memoryStore = store
-  await mkdir(DATA_DIR, { recursive: true })
-  await writeFile(STORE_PATH, JSON.stringify(store, null, 2), 'utf8')
+  try {
+    await mkdir(DATA_DIR, { recursive: true })
+    await writeFile(STORE_PATH, JSON.stringify(store, null, 2), 'utf8')
+  } catch {
+    // Serverless/read-only filesystem: keep the in-memory copy as source of truth.
+  }
 }
 
 export function getDemoContext() {

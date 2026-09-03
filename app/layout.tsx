@@ -31,11 +31,8 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  colorScheme: 'light dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: 'white' },
-    { media: '(prefers-color-scheme: dark)', color: 'black' },
-  ],
+  colorScheme: 'light',
+  themeColor: '#ffffff',
 }
 
 export default function RootLayout({
@@ -44,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="de" className="bg-background">
+    <html lang="de" className="light bg-background" style={{ colorScheme: 'light' }}>
       <body className={`${inter.variable} font-sans antialiased`}>
         <Providers>
           <AppShell>{children}</AppShell>

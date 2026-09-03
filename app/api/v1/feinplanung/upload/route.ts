@@ -7,6 +7,7 @@ import { prioritizeTableRows } from '@/lib/modules/feinplanung/service'
 import { DASHBOARD_COLUMNS, DONE_COLUMNS } from '@/lib/modules/feinplanung/schema'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
   let form: FormData
