@@ -1,5 +1,5 @@
 import { startOfDay as startOfDayMs } from './values'
-import type { WeekdayCapacity } from './settings'
+import type { WeekdayCapacity, WeekdayId } from './settings'
 
 function startOfDay(date: Date): Date {
   return new Date(startOfDayMs(date))
@@ -11,12 +11,20 @@ function addDays(date: Date, days: number): Date {
   return startOfDay(next)
 }
 
+const JS_DAY_TO_ID: WeekdayId[] = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+]
+
 export function hoursOnWeekday(date: Date, capacity: WeekdayCapacity): number {
-  const day = date.getDay()
-  if (day === 0) return capacity.sunday
-  if (day === 6) return capacity.saturday
-  if (day === 5) return capacity.friday
-  return capacity.mondayToThursday
+  const id = JS_DAY_TO_ID[date.getDay()]
+  const hours = capacity[id]
+  return Number.isFinite(hours) ? hours : 0
 }
 
 /** Work hours from `from` through `until` (inclusive). Negative if the due date is already past. */

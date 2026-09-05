@@ -1,6 +1,6 @@
 import { doneRowFromOrder, finishResult, rowsToPlanningOrders, splitOpenAndDone } from './orders'
 import { runPriorityMethod } from './methods/registry'
-import type { FeinplanungSettings } from './settings'
+import { isIgnoredCustomer, type FeinplanungSettings } from './settings'
 import type { PlanningOrder, PrioritizeResult } from './types'
 
 export function prioritizeOrders(
@@ -8,7 +8,8 @@ export function prioritizeOrders(
   settings: FeinplanungSettings,
   methodId?: string,
 ): { result: PrioritizeResult; open: PlanningOrder[]; done: PlanningOrder[] } {
-  const { open, done } = splitOpenAndDone(orders)
+  const visible = orders.filter((order) => !isIgnoredCustomer(order.customer, settings))
+  const { open, done } = splitOpenAndDone(visible)
   const resolvedMethod = methodId ?? settings.methodId
   const completed = done.map((order) => doneRowFromOrder(order))
 

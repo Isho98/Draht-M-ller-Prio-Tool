@@ -1,3 +1,4 @@
+import { matchesAnyPrefix } from './match'
 import { parseNumber } from './values'
 import type { MachineHours } from './types'
 
@@ -30,13 +31,7 @@ export function parseMaschinenField(raw: string, orderId: string): MachineHours[
 }
 
 export function matchesIgnore(machineName: string, ignoreList: string[]): boolean {
-  const name = machineName.trim().toLowerCase()
-  if (!name) return false
-  return ignoreList.some((entry) => {
-    const prefix = entry.trim().toLowerCase()
-    if (!prefix) return false
-    return name === prefix || name.startsWith(prefix)
-  })
+  return matchesAnyPrefix(machineName, ignoreList)
 }
 
 export function relevantMachines(machines: MachineHours[], ignoreList: string[]): MachineHours[] {
@@ -50,6 +45,15 @@ export function remainingHoursOf(machines: MachineHours[]): number {
 export function formatMaschinen(machines: MachineHours[]): string {
   if (machines.length === 0) return '—'
   return machines.map((machine) => `${machine.name} ${formatHours(machine.remainingHours)}`).join('; ')
+}
+
+export function formatHoursCompact(value: number): string {
+  return value.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 })
+}
+
+export function formatMaschinenDisplay(machines: MachineHours[]): string {
+  if (machines.length === 0) return '—'
+  return machines.map((machine) => `${machine.name} (${formatHoursCompact(machine.remainingHours)} Std)`).join(', ')
 }
 
 export function formatHours(value: number): string {

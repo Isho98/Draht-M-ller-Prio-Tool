@@ -73,7 +73,7 @@ export function SettingsModal({ onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-8">
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-8">
       <button type="button" className="absolute inset-0 bg-black/30" aria-label="Schließen" onClick={onClose} />
       <div
         role="dialog"
@@ -81,7 +81,7 @@ export function SettingsModal({ onClose }: Props) {
         aria-labelledby="settings-title"
         className="relative z-10 flex max-h-[min(720px,calc(100svh-64px))] w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-[0_8px_40px_rgba(0,0,0,0.12)]"
       >
-        <div className="flex h-16 shrink-0 items-center justify-between px-8">
+        <div className="flex h-16 shrink-0 items-center justify-between px-4 sm:px-8">
           <h2 id="settings-title" className="text-lg font-medium tracking-tight">
             Einstellungen
           </h2>
@@ -90,7 +90,7 @@ export function SettingsModal({ onClose }: Props) {
           </IconButton>
         </div>
 
-        <div className="grid h-10 shrink-0 grid-cols-4 border-y border-border px-8">
+        <div className="grid h-auto min-h-10 shrink-0 grid-cols-2 border-y border-border px-4 sm:grid-cols-4 sm:px-8">
           {TABS.map((item) => (
             <button
               key={item.id}
@@ -108,7 +108,7 @@ export function SettingsModal({ onClose }: Props) {
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-8 py-8">
+        <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
           {tab === 'general' ? (
             <div className="flex flex-col gap-6">
               <SettingsField label="Fenstergröße" htmlFor={presetId}>
@@ -290,7 +290,7 @@ export function SettingsModal({ onClose }: Props) {
           ) : null}
         </div>
 
-        <div className="flex h-16 shrink-0 items-center justify-end border-t border-border px-8">
+        <div className="flex h-16 shrink-0 items-center justify-end border-t border-border px-4 sm:px-8">
           <button
             type="button"
             onClick={onClose}

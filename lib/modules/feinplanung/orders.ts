@@ -1,9 +1,9 @@
 import { AppError } from '@/lib/errors'
 import { logEvent } from '@/lib/logging'
 import { parseDate } from './values'
-import { coreColumnMap, isCompletedStatus, readField } from './schema'
-import { formatHours, formatMaschinen, parseMaschinenField, relevantMachines, remainingHoursOf } from './machines'
-import type { CanonicalValues, ColumnMapping, PlanningOrder, PrioritizeResult, PrioritizedRow } from './types'
+import { coreColumnMap, extraValue, EXCEL_FIELDS, isCompletedStatus, readField } from './schema'
+import { formatHours, formatMaschinen, formatMaschinenDisplay, parseMaschinenField, relevantMachines, remainingHoursOf } from './machines'
+import type { CanonicalValues, PlanningOrder, PrioritizeResult, PrioritizedRow } from './types'
 
 export function emptyCanonical(): CanonicalValues {
   return {
@@ -110,14 +110,15 @@ export function validateOrders(orders: PlanningOrder[]): string[] {
 }
 
 export function ordersToDisplayRows(orders: PlanningOrder[]): { columns: string[]; rows: Record<string, string>[] } {
-  const columns = ['Prod-Ende', 'AuftNr', 'Name', 'Artikelnr.', 'offen', 'Maschinen', 'F']
+  const columns = ['Auftrag', 'Abrufnummer', 'Arbeitskartennummer', 'Kunde', 'Artikel', 'Menge', 'Maschine', 'F']
   const rows = orders.map((order) => ({
-    'Prod-Ende': order.dueDate,
-    AuftNr: order.name,
-    Name: order.customer,
-    'Artikelnr.': order.article,
-    offen: order.extra.offen ?? '',
-    Maschinen: formatMaschinen(order.machines),
+    Auftrag: order.name,
+    Abrufnummer: extraValue(order.extra, EXCEL_FIELDS.abruf.names),
+    Arbeitskartennummer: extraValue(order.extra, EXCEL_FIELDS.arbeitskarte.names),
+    Kunde: order.customer,
+    Artikel: order.article,
+    Menge: extraValue(order.extra, EXCEL_FIELDS.offen.names),
+    Maschine: formatMaschinenDisplay(order.machines),
     F: order.statusF,
   }))
   return { columns, rows }
@@ -139,18 +140,28 @@ export function orderToPrioritizedShape(
   const buffer =
     extras?.bufferHours === undefined || extras.bufferHours === null ? '' : formatHours(extras.bufferHours)
   const customerPercent = extras?.customerPercent
+  const abruf = extraValue(order.extra, EXCEL_FIELDS.abruf.names)
+  const arbeitskarte = extraValue(order.extra, EXCEL_FIELDS.arbeitskarte.names)
+  const menge = extraValue(order.extra, EXCEL_FIELDS.offen.names)
   const values: Record<string, string> = {
     ...order.extra,
     'Prod-Ende': order.dueDate,
     AuftNr: order.name,
     Name: order.customer,
     'Artikelnr.': order.article,
-    offen: order.extra.offen ?? '',
+    offen: menge,
     Maschinen: formatMaschinen(relevant),
     'Restaufwand (h)': formatHours(remaining),
     'Puffer (h)': buffer || '—',
     Kundenprio: customerPercent == null ? '—' : `${String(customerPercent).replace('.', ',')} %`,
     F: order.statusF,
+    Auftrag: order.name,
+    Abrufnummer: abruf,
+    Arbeitskartennummer: arbeitskarte,
+    Kunde: order.customer,
+    Artikel: order.article,
+    Menge: menge,
+    Maschine: formatMaschinenDisplay(relevant),
   }
 
   return {

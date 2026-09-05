@@ -9,7 +9,7 @@ export type AppArea = {
 export const APP_AREAS: AppArea[] = [
   {
     id: 'feinplanung',
-    label: 'Feinplanung',
+    label: 'Produktionspriorisierung',
     href: '/feinplanung',
     available: true,
   },

@@ -3,11 +3,15 @@ import { AppError } from '@/lib/errors'
 export const EXCEL_FIELDS = {
   prodEnde: { label: 'Prod-Ende', names: ['Prod-Ende'] },
   auftNr: { label: 'AuftNr', names: ['AuftNr'] },
-  abruf: { label: 'Abruf', names: ['Abruf'] },
+  abruf: { label: 'Abruf', names: ['Abruf', 'Abrufnummer'] },
+  arbeitskarte: {
+    label: 'Arbeitskartennummer',
+    names: ['Arbeitskartennummer', 'Arbeitskarte', 'AK-Nr.', 'AK-Nr', 'AKNr', 'AK', 'Kartennummer'],
+  },
   name: { label: 'Name', names: ['Name'] },
   maschinen: { label: 'Maschinen', names: ['Maschinen'] },
   artikelnr: { label: 'Artikelnr.', names: ['Artikelnr.', 'Artikelnr'] },
-  offen: { label: 'offen', names: ['offen'] },
+  offen: { label: 'offen', names: ['offen', 'Menge'] },
   geliefert: { label: 'geliefert', names: ['geliefert'] },
   gefertigt: { label: 'gefertigt', names: ['gefertigt'] },
   gefertigtLa: { label: 'gefertigt LA', names: ['gefertigt LA', 'gefertig LA'] },
@@ -35,20 +39,19 @@ const REQUIRED_FIELDS: ExcelField[] = [
 const CORE_FIELDS: ExcelField[] = ['prodEnde', 'auftNr', 'name', 'maschinen', 'f']
 
 export const DASHBOARD_COLUMNS = [
-  'Prod-Ende',
-  'AuftNr',
-  'Name',
-  'Artikelnr.',
-  'offen',
-  'Maschinen',
-  'Restaufwand (h)',
-  'Puffer (h)',
-  'Kundenprio',
+  'Auftrag',
+  'Abrufnummer',
+  'Arbeitskartennummer',
+  'Kunde',
+  'Artikel',
+  'Menge',
+  'Prio',
+  'Maschine',
 ] as const
 
-export const DONE_COLUMNS = ['Prod-Ende', 'AuftNr', 'Name', 'Artikelnr.', 'offen', 'F'] as const
+export const DONE_COLUMNS = ['Auftrag', 'Kunde', 'Artikel', 'Menge', 'F'] as const
 
-function normalizeHeader(value: string): string {
+export function normalizeHeader(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
@@ -99,6 +102,14 @@ export function readField(
   const column = columns[field]
   if (!column) return ''
   return (row[column] ?? '').trim()
+}
+
+export function extraValue(extra: Record<string, string>, names: readonly string[]): string {
+  for (const name of names) {
+    const found = Object.keys(extra).find((key) => normalizeHeader(key) === normalizeHeader(name))
+    if (found && extra[found]?.trim()) return extra[found].trim()
+  }
+  return ''
 }
 
 export function isCompletedStatus(value: string): boolean {

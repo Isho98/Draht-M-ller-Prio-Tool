@@ -116,8 +116,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    overflow-x: hidden;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
     font-family: var(--font-sans);
   }
 }
@@ -135,9 +138,22 @@
     margin-left: 204px;
   }
 
+  @media (max-width: 640px) {
+    .settings-field {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 8px;
+      min-height: 0;
+      align-items: start;
+    }
+
+    .settings-field-error {
+      margin-left: 0;
+    }
+  }
+
   .adept-intro-text {
     font-family: Georgia, 'Times New Roman', serif;
-    font-size: 90px;
+    font-size: clamp(48px, 16vw, 90px);
     font-weight: bold;
   }
 

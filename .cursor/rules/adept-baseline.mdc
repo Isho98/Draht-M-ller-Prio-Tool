@@ -1,0 +1,25 @@
+---
+description: adept& Baseline — dieser Stand ist die Plattform-Grundlage für andere Projekte und Kunden-Overlays.
+alwaysApply: true
+---
+
+# adept& Baseline
+
+Der aktuelle Repo-Stand ist die **adept& Baseline**. Andere Projekte starten von hier. Kunden-Änderungsprompts in diesem Repo sind Overlays auf diese Grundlage, keine neue Plattform.
+
+**Freeze:** `2918c27` (2026-09-03) — `Recalculate Feinplanung from client-held orders so Vercel sessions survive.`  
+`main` / `origin/main` zu diesem Zeitpunkt.
+
+## Was dazugehört
+
+- Next.js-App mit deutscher Light-UI, App-Shell, Module, Excel-Upload, Feinplanung (Prio-Dashboard, Einstellungen, Erledigt).
+- Feste Excel-Spalten, Maschinen-Parser, Ignore-Liste, Status F, Puffer-Logik, Kundenprio.
+- Session-Wahrheit im Browser (Aufträge clientseitig halten), damit Vercel-Lambdas die Sitzung nicht verlieren.
+- Kein Mapping-Dialog, kein Auto-Dark-Mode, keine Writes nach `process.cwd()/data` auf Vercel.
+
+## Arbeitsregeln
+
+- Neue Kundenwünsche in diesem Projekt = Overlay. Baseline-Invarianten nicht stillschweigend umbauen.
+- Andere Projekte von diesem Stand ableiten, nicht von einem späteren Kunden-Fork.
+- Mapping-UI, Dark-Mode-Auto und persistente Job-Maps auf Vercel nicht wieder einführen.
+- Die Baseline nicht mit kundenspezifischer Fachlogik vermischen, ohne das explizit als Overlay zu kennzeichnen.

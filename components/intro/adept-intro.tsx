@@ -26,7 +26,11 @@ export function AdeptIntro({ onComplete }: Props) {
 
   return (
     <div className="adept-intro flex min-h-svh items-center justify-center bg-background">
-      <svg width="600" height="200" viewBox="0 0 600 200" aria-label="adept&">
+      <svg
+        className="h-auto w-full max-w-[600px] px-6"
+        viewBox="0 0 600 200"
+        aria-label="adept&"
+      >
         <text
           x="50%"
           y="55%"

@@ -34,6 +34,7 @@ export async function saveFeinplanungSettings(
   const { tenantId, userId } = getDemoContext()
   await appendAuditLog(tenantId, userId, 'feinplanung.settings.updated', {
     ignoreMachines: next.ignoreMachines,
+    ignoreCustomers: next.ignoreCustomers,
     customers: next.customerPriorities.length,
     methodId: next.methodId,
   })

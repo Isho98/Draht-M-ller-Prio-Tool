@@ -2,7 +2,6 @@ export { CANONICAL_FIELDS, type CanonicalField, type ColumnMapping, type Plannin
 export { assertExcelFile, parseExcelBuffer, buildExportWorkbook } from './excel'
 export { saveJob, getJob, findJob, updateJob } from './jobs'
 export { buildSampleWorkbook } from './sample'
-export { SHOW_TEST_PREVIEW } from './preview-flag'
 export { PRIORITY_METHODS, DEFAULT_METHOD_ID, getPriorityMethod, runPriorityMethod, runPriorityOnRows } from './methods/registry'
 export { prioritizeOrders, prioritizeTableRows } from './service'
 export { DEFAULT_FEINPLANUNG_SETTINGS } from './settings'

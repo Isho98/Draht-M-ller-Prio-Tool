@@ -10,10 +10,10 @@ type Props = {
 
 export function MethodSelect({ value, onChange }: Props) {
   return (
-    <label className="flex items-center gap-4">
+    <label className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
       <span className="text-sm text-muted-foreground">Priorisierung</span>
       <select
-        className={`${fieldControlClass} w-[360px]`}
+        className={`${fieldControlClass} w-full max-w-[360px]`}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >

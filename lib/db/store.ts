@@ -54,6 +54,7 @@ function createDefaultStore(): DbStore {
     auditLogs: [],
     feinplanung: {
       ignoreMachines: [...DEFAULT_FEINPLANUNG_SETTINGS.ignoreMachines],
+      ignoreCustomers: [...DEFAULT_FEINPLANUNG_SETTINGS.ignoreCustomers],
       customerPriorities: [],
       methodId: DEFAULT_FEINPLANUNG_SETTINGS.methodId,
       weights: { ...DEFAULT_FEINPLANUNG_SETTINGS.weights },

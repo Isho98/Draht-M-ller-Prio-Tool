@@ -51,7 +51,7 @@ export function UploadZone({ busy, status, onFile }: Props) {
           handleFiles(e.dataTransfer.files)
         }}
         className={cn(
-          'flex flex-col items-center rounded-2xl border border-dashed px-8 py-16 text-center transition-colors duration-200 ease-in-out',
+          'flex flex-col items-center rounded-2xl border border-dashed px-4 py-12 text-center transition-colors duration-200 ease-in-out sm:px-8 sm:py-16',
           over ? 'border-foreground bg-secondary/70' : 'border-border bg-secondary/40',
         )}
       >

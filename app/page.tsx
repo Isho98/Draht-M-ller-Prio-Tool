@@ -1,7 +1,7 @@
 'use client'
 
-import { StartScreen } from '@/components/start-screen'
+import { FeinplanungScreen } from '@/components/feinplanung/feinplanung-screen'
 
 export default function HomePage() {
-  return <StartScreen />
+  return <FeinplanungScreen />
 }
