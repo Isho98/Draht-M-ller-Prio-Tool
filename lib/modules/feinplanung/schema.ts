@@ -4,10 +4,6 @@ export const EXCEL_FIELDS = {
   prodEnde: { label: 'Prod-Ende', names: ['Prod-Ende'] },
   auftNr: { label: 'AuftNr', names: ['AuftNr'] },
   abruf: { label: 'Abruf', names: ['Abruf', 'Abrufnummer'] },
-  arbeitskarte: {
-    label: 'Arbeitskartennummer',
-    names: ['Arbeitskartennummer', 'Arbeitskarte', 'AK-Nr.', 'AK-Nr', 'AKNr', 'AK', 'Kartennummer'],
-  },
   name: { label: 'Name', names: ['Name'] },
   maschinen: { label: 'Maschinen', names: ['Maschinen'] },
   artikelnr: { label: 'Artikelnr.', names: ['Artikelnr.', 'Artikelnr'] },
@@ -41,7 +37,6 @@ const CORE_FIELDS: ExcelField[] = ['prodEnde', 'auftNr', 'name', 'maschinen', 'f
 export const DASHBOARD_COLUMNS = [
   'Auftrag',
   'Abrufnummer',
-  'Arbeitskartennummer',
   'Kunde',
   'Artikel',
   'Menge',

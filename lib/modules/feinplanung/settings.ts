@@ -51,7 +51,11 @@ export const DEFAULT_IGNORE_MACHINES = ['Paletten', 'Fremdleist']
 
 export const DEFAULT_PRIORITY_WEIGHTS: PriorityWeights = {
   defaultCustomerPercent: 50,
-  customerBufferHoursPerPercent: 0.4,
+  /**
+   * 100 % vs 50 % ≈ 600 h Puffer-Äquivalent, damit Kundenprio in der Tabelle
+   * sichtbar nach oben zieht und nicht hinter großen Restaufwänden verschwindet.
+   */
+  customerBufferHoursPerPercent: 12,
 }
 
 export const DEFAULT_WEEKDAY_CAPACITY: WeekdayCapacity = {
@@ -165,7 +169,14 @@ export function mergeFeinplanungSettings(
       name: entry.name.trim(),
       percent: sanitizePercent(entry.percent),
     })),
-    weights: { ...current.weights, ...patch.weights },
+    weights: {
+      ...DEFAULT_PRIORITY_WEIGHTS,
+      ...current.weights,
+      ...patch.weights,
+      // Strength is a product default, not a stored UI field. Keep the current
+      // code value so older localStorage (0.4 h/%) cannot mute ranking.
+      customerBufferHoursPerPercent: DEFAULT_PRIORITY_WEIGHTS.customerBufferHoursPerPercent,
+    },
     weekdayCapacity: normalizeWeekdayCapacity({
       ...current.weekdayCapacity,
       ...patch.weekdayCapacity,

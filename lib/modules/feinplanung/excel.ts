@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 import { AppError } from '@/lib/api/server'
-import { assertExcelColumns, findColumn, normalizeHeader } from './schema'
+import { assertExcelColumns, findColumn } from './schema'
 import type { ParsedTable, PrioritizedRow } from './types'
 
 const MAX_BYTES = 10 * 1024 * 1024
@@ -42,18 +42,6 @@ function uniqueHeaders(headers: string[]): string[] {
     seen.set(base, count + 1)
     return count === 0 ? base : `${base} (${count + 1})`
   })
-}
-
-/** Empty column between Abruf and Name is the customer's Arbeitskartennummer. */
-function labelAnonymousHeaders(headers: string[]): string[] {
-  const next = [...headers]
-  const abrufIndex = next.findIndex((header) => normalizeHeader(header) === 'abruf' || normalizeHeader(header) === 'abrufnummer')
-  const nameIndex = next.findIndex((header) => normalizeHeader(header) === 'name')
-  if (abrufIndex >= 0 && nameIndex === abrufIndex + 2) {
-    const between = next[abrufIndex + 1]?.trim() ?? ''
-    if (!between) next[abrufIndex + 1] = 'Arbeitskartennummer'
-  }
-  return next
 }
 
 export function parseExcelBuffer(buffer: Buffer, fileName: string): ParsedTable {
@@ -104,7 +92,7 @@ export function parseExcelBuffer(buffer: Buffer, fileName: string): ParsedTable 
     )
   }
 
-  const headerRow = labelAnonymousHeaders(matrix[headerIndex].map((cell) => cellToString(cell)))
+  const headerRow = matrix[headerIndex].map((cell) => cellToString(cell))
   const columns = uniqueHeaders(headerRow)
   assertExcelColumns(columns)
 

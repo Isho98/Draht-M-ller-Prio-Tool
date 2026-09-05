@@ -110,11 +110,10 @@ export function validateOrders(orders: PlanningOrder[]): string[] {
 }
 
 export function ordersToDisplayRows(orders: PlanningOrder[]): { columns: string[]; rows: Record<string, string>[] } {
-  const columns = ['Auftrag', 'Abrufnummer', 'Arbeitskartennummer', 'Kunde', 'Artikel', 'Menge', 'Maschine', 'F']
+  const columns = ['Auftrag', 'Abrufnummer', 'Kunde', 'Artikel', 'Menge', 'Maschine', 'F']
   const rows = orders.map((order) => ({
     Auftrag: order.name,
     Abrufnummer: extraValue(order.extra, EXCEL_FIELDS.abruf.names),
-    Arbeitskartennummer: extraValue(order.extra, EXCEL_FIELDS.arbeitskarte.names),
     Kunde: order.customer,
     Artikel: order.article,
     Menge: extraValue(order.extra, EXCEL_FIELDS.offen.names),
@@ -141,7 +140,6 @@ export function orderToPrioritizedShape(
     extras?.bufferHours === undefined || extras.bufferHours === null ? '' : formatHours(extras.bufferHours)
   const customerPercent = extras?.customerPercent
   const abruf = extraValue(order.extra, EXCEL_FIELDS.abruf.names)
-  const arbeitskarte = extraValue(order.extra, EXCEL_FIELDS.arbeitskarte.names)
   const menge = extraValue(order.extra, EXCEL_FIELDS.offen.names)
   const values: Record<string, string> = {
     ...order.extra,
@@ -157,7 +155,6 @@ export function orderToPrioritizedShape(
     F: order.statusF,
     Auftrag: order.name,
     Abrufnummer: abruf,
-    Arbeitskartennummer: arbeitskarte,
     Kunde: order.customer,
     Artikel: order.article,
     Menge: menge,

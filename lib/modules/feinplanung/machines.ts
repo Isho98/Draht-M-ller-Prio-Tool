@@ -59,3 +59,11 @@ export function formatMaschinenDisplay(machines: MachineHours[]): string {
 export function formatHours(value: number): string {
   return value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
+
+export function machineNamesFromDisplay(value: string): string[] {
+  if (!value.trim() || value.trim() === '—') return []
+  return value
+    .split(',')
+    .map((part) => part.replace(/\s*\([^)]*\)\s*$/, '').trim())
+    .filter(Boolean)
+}

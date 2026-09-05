@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { UploadZone } from '@/components/feinplanung/upload-zone'
 import { ResultsTable } from '@/components/feinplanung/results-table'
@@ -12,7 +12,6 @@ import {
   exportJob,
   getFeinplanungSettings,
   getUserFacingMessage,
-  prioritizeJob,
   saveFeinplanungSettings,
   uploadPlanningFile,
   type UploadResponse,
@@ -24,7 +23,14 @@ import {
   mergeFeinplanungSettings,
   type FeinplanungSettings,
 } from '@/lib/modules/feinplanung/settings'
-import { readLocalFeinplanungSettings, writeLocalFeinplanungSettings } from '@/lib/modules/feinplanung/settings-storage'
+import {
+  clearPlanningSession,
+  readLocalFeinplanungSettings,
+  readPlanningSession,
+  writeLocalFeinplanungSettings,
+  writePlanningSession,
+} from '@/lib/modules/feinplanung/settings-storage'
+import { prioritizeOrders } from '@/lib/modules/feinplanung/service'
 import { DASHBOARD_COLUMNS, DONE_COLUMNS } from '@/lib/modules/feinplanung/schema'
 import type { PrioritizeResult } from '@/lib/modules/feinplanung/types'
 
@@ -40,48 +46,55 @@ export function FeinplanungScreen() {
   const [view, setView] = useState<FeinplanungView>('dashboard')
   const [fpSettings, setFpSettings] = useState<FeinplanungSettings>(DEFAULT_FEINPLANUNG_SETTINGS)
 
+  const uploadRef = useRef(upload)
+  const settingsRef = useRef(fpSettings)
+  uploadRef.current = upload
+  settingsRef.current = fpSettings
+
+  const applyRanking = useCallback((nextSettings: FeinplanungSettings = settingsRef.current) => {
+    const current = uploadRef.current
+    if (!current?.orders?.length) return false
+    const { result: nextResult } = prioritizeOrders(current.orders, nextSettings, nextSettings.methodId)
+    setResult(nextResult)
+    setWarnings(nextResult.warnings ?? [])
+    return true
+  }, [])
+
   useEffect(() => {
     const local = readLocalFeinplanungSettings()
+    const settings = local ?? DEFAULT_FEINPLANUNG_SETTINGS
     if (local) setFpSettings(local)
+
+    const session = readPlanningSession()
+    if (session?.orders?.length) {
+      const restored = {
+        ...session,
+        result: prioritizeOrders(session.orders, settings, settings.methodId).result,
+      } as UploadResponse
+      setUpload(restored)
+      setResult(restored.result)
+      setWarnings(restored.result.warnings ?? [])
+    }
+
     getFeinplanungSettings()
       .then((server) => {
         if (local) return
         setFpSettings(server)
         writeLocalFeinplanungSettings(server)
+        applyRanking(server)
       })
       .catch(() => {
         if (!local) setFpSettings(DEFAULT_FEINPLANUNG_SETTINGS)
       })
-  }, [])
+  }, [applyRanking])
 
-  const applySettings = useCallback((next: FeinplanungSettings) => {
-    setFpSettings(next)
-    writeLocalFeinplanungSettings(next)
-  }, [])
-
-  const refreshRanking = useCallback(
-    async (nextSettings: FeinplanungSettings = fpSettings) => {
-      if (!upload?.orders?.length) return
-      setBusy(true)
-      setStatus('Wird aktualisiert…')
-      setError(null)
-      try {
-        const refreshed = await prioritizeJob({
-          jobId: upload.jobId,
-          orders: upload.orders,
-          methodId: nextSettings.methodId,
-          settings: nextSettings,
-        })
-        setResult(refreshed)
-        setWarnings(refreshed.warnings ?? [])
-      } catch (err) {
-        setError(getUserFacingMessage(err))
-      } finally {
-        setBusy(false)
-        setStatus(null)
-      }
+  const applySettings = useCallback(
+    (next: FeinplanungSettings) => {
+      setFpSettings(next)
+      writeLocalFeinplanungSettings(next)
+      applyRanking(next)
     },
-    [fpSettings, upload],
+    [applyRanking],
   )
 
   const handleFile = useCallback(
@@ -95,13 +108,17 @@ export function FeinplanungScreen() {
         setStatus('Aufträge werden priorisiert…')
         const data = await uploadPlanningFile(file, { methodId: fpSettings.methodId, settings: fpSettings })
         setUpload(data)
-        setResult(data.result)
-        setWarnings(data.result.warnings ?? [])
+        uploadRef.current = data
+        writePlanningSession(data)
+        const { result: ranked } = prioritizeOrders(data.orders, fpSettings, fpSettings.methodId)
+        setResult(ranked)
+        setWarnings(ranked.warnings ?? [])
         setView('dashboard')
       } catch (err) {
         setError(getUserFacingMessage(err))
         setUpload(null)
         setResult(null)
+        clearPlanningSession()
       } finally {
         setBusy(false)
         setStatus(null)
@@ -110,18 +127,23 @@ export function FeinplanungScreen() {
     [fpSettings],
   )
 
-  async function handleSettingsChange(patch: Partial<FeinplanungSettings>) {
+  function handleSettingsChange(patch: Partial<FeinplanungSettings>) {
     const next = mergeFeinplanungSettings(fpSettings, patch)
     applySettings(next)
     setError(null)
-    try {
-      await saveFeinplanungSettings(next)
-    } catch {
-      // On Vercel another instance may not share settings; local next is the source of truth.
+    void saveFeinplanungSettings(next).catch(() => {
+      // Browser settings remain the source of truth on Vercel.
+    })
+  }
+
+  function handleRefresh() {
+    setError(null)
+    const ok = applyRanking(settingsRef.current)
+    if (!ok) {
+      setError('Bitte zuerst eine Excel-Datei laden.')
+      return
     }
-    if (upload?.orders?.length) {
-      await refreshRanking(next)
-    }
+    setNotice('Priorisierung aktualisiert.')
   }
 
   async function handleExport(mode: 'default' | 'save-as') {
@@ -162,6 +184,7 @@ export function FeinplanungScreen() {
     setNotice(null)
     setWarnings([])
     setView('dashboard')
+    clearPlanningSession()
   }
 
   const dashboardColumns = upload?.columns ?? [...DASHBOARD_COLUMNS]
@@ -198,7 +221,7 @@ export function FeinplanungScreen() {
           ))}
 
           {view === 'settings' ? (
-            <PrioritizationSettings settings={fpSettings} busy={busy} onChange={handleSettingsChange} />
+            <PrioritizationSettings settings={fpSettings} busy={false} onChange={handleSettingsChange} />
           ) : null}
 
           {view === 'done' ? (
@@ -250,19 +273,23 @@ export function FeinplanungScreen() {
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    disabled={busy || !upload.orders?.length}
-                    onClick={() => refreshRanking()}
-                    className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-button)] border border-border px-4 text-sm transition-colors duration-200 ease-in-out hover:bg-secondary disabled:opacity-40"
-                  >
-                    <RefreshCw className="size-4" strokeWidth={1.5} />
-                    Aktualisieren
-                  </button>
-                </div>
-
-                {result ? <ResultsTable columns={dashboardColumns} rows={result.rows} /> : null}
+                {result ? (
+                  <ResultsTable
+                    columns={dashboardColumns}
+                    rows={result.rows}
+                    toolbar={
+                      <button
+                        type="button"
+                        disabled={!upload.orders?.length}
+                        onClick={handleRefresh}
+                        className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-button)] border border-border px-4 text-sm transition-colors duration-200 ease-in-out hover:bg-secondary disabled:opacity-40"
+                      >
+                        <RefreshCw className="size-4" strokeWidth={1.5} />
+                        Aktualisieren
+                      </button>
+                    }
+                  />
+                ) : null}
               </div>
             )
           ) : null}

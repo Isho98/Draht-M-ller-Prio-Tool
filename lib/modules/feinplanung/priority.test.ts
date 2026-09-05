@@ -19,7 +19,7 @@ function order(partial: Partial<PlanningOrder> & Pick<PlanningOrder, 'id' | 'nam
     statusF: '',
     completed: false,
     machines: [{ id: `${partial.id}-m`, name: 'MG930', remainingHours: 10 }],
-    extra: { offen: '10', Abruf: 'A-1', Arbeitskartennummer: 'AK-1' },
+    extra: { offen: '10', Abruf: 'A-1' },
     sourceIndex: 0,
     ...partial,
   }
@@ -89,6 +89,38 @@ describe('prioritizeOrders settings', () => {
 
     expect(boostedOrder[0]).toBe('XYZ Industrie GmbH')
     expect(boostedOrder).not.toEqual(baselineOrder)
+    expect(boosted.result.rows[0].rank).toBe(1)
+  })
+
+  it('moves a 100% customer to the top even with more buffer than others', () => {
+    const orders = [
+      order({
+        id: 'a',
+        name: '110001',
+        customer: 'Nordwerk AG',
+        dueDate: '03.09.2026',
+        machines: [{ id: 'a-m', name: 'MG950', remainingHours: 80 }],
+        sourceIndex: 0,
+      }),
+      order({
+        id: 'b',
+        name: '110002',
+        customer: 'XYZ Industrie GmbH',
+        dueDate: '20.09.2026',
+        machines: [{ id: 'b-m', name: 'MG930', remainingHours: 8 }],
+        sourceIndex: 1,
+      }),
+    ]
+    const baseline = prioritizeOrders(orders, DEFAULT_FEINPLANUNG_SETTINGS, 'capacity-deadline')
+    const boosted = prioritizeOrders(
+      orders,
+      mergeFeinplanungSettings(DEFAULT_FEINPLANUNG_SETTINGS, {
+        customerPriorities: [{ id: 'xyz', name: 'XYZ', percent: 100 }],
+      }),
+      'capacity-deadline',
+    )
+    expect(baseline.result.rows[0].values.Kunde).toBe('Nordwerk AG')
+    expect(boosted.result.rows[0].values.Kunde).toBe('XYZ Industrie GmbH')
     expect(boosted.result.rows[0].rank).toBe(1)
   })
 
