@@ -8,8 +8,6 @@ import { cn } from '@/lib/utils'
 
 type SortMode = 'prio-asc' | 'prio-desc' | 'customer-asc' | 'order-asc'
 
-type SearchKey = 'Auftrag' | 'Abrufnummer'
-
 type ColumnId =
   | 'Auftrag'
   | 'Abrufnummer'
@@ -20,20 +18,22 @@ type ColumnId =
   | 'Maschine'
   | 'F'
 
+type ListKey = 'Auftrag' | 'Abrufnummer' | 'Maschine'
+
 type Column = {
   id: ColumnId
   label: string
-  filter?: 'prio' | 'machines' | 'search'
+  filter?: 'prio' | 'list'
 }
 
 const PRODUCTION_COLUMNS: Column[] = [
-  { id: 'Auftrag', label: 'Auftrag', filter: 'search' },
-  { id: 'Abrufnummer', label: 'Abrufnummer', filter: 'search' },
+  { id: 'Auftrag', label: 'Auftrag', filter: 'list' },
+  { id: 'Abrufnummer', label: 'Abrufnummer', filter: 'list' },
   { id: 'Kunde', label: 'Kunde' },
   { id: 'Artikel', label: 'Artikel' },
   { id: 'Menge', label: 'Menge' },
   { id: 'Prio', label: 'Prio', filter: 'prio' },
-  { id: 'Maschine', label: 'Maschine', filter: 'machines' },
+  { id: 'Maschine', label: 'Maschine', filter: 'list' },
 ]
 
 const DONE_VIEW_COLUMNS: Column[] = [
@@ -54,6 +54,14 @@ const SORT_OPTIONS: { id: SortMode; menu: string; button: string }[] = [
   { id: 'order-asc', menu: 'Auftragsnummer', button: 'Auftrag' },
 ]
 
+const LIST_SEARCH_THRESHOLD = 12
+
+const EMPTY_LIST_FILTERS: Record<ListKey, string[]> = {
+  Auftrag: [],
+  Abrufnummer: [],
+  Maschine: [],
+}
+
 type Props = {
   columns?: string[]
   rows: PrioritizedRow[]
@@ -73,13 +81,39 @@ function compareAuftrag(a: PrioritizedRow, b: PrioritizedRow): number {
   })
 }
 
+function uniqueColumnValues(rows: PrioritizedRow[], column: ListKey): string[] {
+  const values = new Set<string>()
+  for (const row of rows) {
+    if (column === 'Maschine') {
+      for (const name of machineNamesFromDisplay(row.values.Maschine || '')) values.add(name)
+      continue
+    }
+    const value = cellValue(row, column)
+    if (value && value !== '—') values.add(value)
+  }
+  return [...values].sort((a, b) => a.localeCompare(b, 'de', { numeric: true, sensitivity: 'base' }))
+}
+
+function rowMatchesList(row: PrioritizedRow, column: ListKey, selected: string[]): boolean {
+  if (selected.length === 0) return true
+  if (column === 'Maschine') {
+    const names = machineNamesFromDisplay(row.values.Maschine || '')
+    return selected.some((wanted) => names.includes(wanted))
+  }
+  return selected.includes(cellValue(row, column))
+}
+
 export function ResultsTable({ rows, hidePriority, toolbar }: Props) {
   const columns = hidePriority ? DONE_VIEW_COLUMNS : PRODUCTION_COLUMNS
   const [openColumn, setOpenColumn] = useState<string | null>(null)
   const [sortOpen, setSortOpen] = useState(false)
   const [prioFilter, setPrioFilter] = useState<string[]>([])
-  const [machineFilter, setMachineFilter] = useState<string[]>([])
-  const [search, setSearch] = useState({ Auftrag: '', Abrufnummer: '' })
+  const [listFilters, setListFilters] = useState(EMPTY_LIST_FILTERS)
+  const [listQuery, setListQuery] = useState<Record<ListKey, string>>({
+    Auftrag: '',
+    Abrufnummer: '',
+    Maschine: '',
+  })
   const [sort, setSort] = useState<SortMode>('prio-asc')
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -99,26 +133,19 @@ export function ResultsTable({ rows, hidePriority, toolbar }: Props) {
     [rows],
   )
 
-  const machineValues = useMemo(() => {
-    const names = new Set<string>()
-    for (const row of rows) {
-      for (const name of machineNamesFromDisplay(row.values.Maschine || '')) names.add(name)
-    }
-    return [...names].sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }))
-  }, [rows])
+  const listValues = useMemo(
+    () => ({
+      Auftrag: uniqueColumnValues(rows, 'Auftrag'),
+      Abrufnummer: uniqueColumnValues(rows, 'Abrufnummer'),
+      Maschine: uniqueColumnValues(rows, 'Maschine'),
+    }),
+    [rows],
+  )
 
   const visible = useMemo(() => {
     const filtered = rows.filter((row) => {
       if (prioFilter.length > 0 && !prioFilter.includes(String(row.rank))) return false
-      if (machineFilter.length > 0) {
-        const names = machineNamesFromDisplay(row.values.Maschine || '')
-        if (!machineFilter.some((wanted) => names.includes(wanted))) return false
-      }
-      const auftrag = search.Auftrag.trim().toLowerCase()
-      if (auftrag && !cellValue(row, 'Auftrag').toLowerCase().includes(auftrag)) return false
-      const abruf = search.Abrufnummer.trim().toLowerCase()
-      if (abruf && !cellValue(row, 'Abrufnummer').toLowerCase().includes(abruf)) return false
-      return true
+      return (Object.keys(listFilters) as ListKey[]).every((key) => rowMatchesList(row, key, listFilters[key]))
     })
     return [...filtered].sort((a, b) => {
       if (sort === 'customer-asc') {
@@ -130,21 +157,19 @@ export function ResultsTable({ rows, hidePriority, toolbar }: Props) {
       if (sort === 'prio-desc') return b.rank - a.rank
       return a.rank - b.rank
     })
-  }, [rows, prioFilter, machineFilter, search, sort])
+  }, [rows, prioFilter, listFilters, sort])
 
   const activeSort = SORT_OPTIONS.find((option) => option.id === sort) ?? SORT_OPTIONS[0]
 
   function filterActive(column: Column): boolean {
     if (column.filter === 'prio') return prioFilter.length > 0
-    if (column.filter === 'machines') return machineFilter.length > 0
-    if (column.filter === 'search') return Boolean(search[column.id as SearchKey]?.trim())
+    if (column.filter === 'list') return listFilters[column.id as ListKey].length > 0
     return false
   }
 
   function filterCount(column: Column): number {
     if (column.filter === 'prio') return prioFilter.length
-    if (column.filter === 'machines') return machineFilter.length
-    if (column.filter === 'search') return search[column.id as SearchKey]?.trim() ? 1 : 0
+    if (column.filter === 'list') return listFilters[column.id as ListKey].length
     return 0
   }
 
@@ -159,12 +184,12 @@ export function ResultsTable({ rows, hidePriority, toolbar }: Props) {
     })
   }
 
-  function toggleMachine(value: string) {
-    setMachineFilter((current) => {
-      const selected = new Set(current)
+  function toggleList(column: ListKey, value: string) {
+    setListFilters((current) => {
+      const selected = new Set(current[column])
       if (selected.has(value)) selected.delete(value)
       else selected.add(value)
-      return [...selected]
+      return { ...current, [column]: [...selected] }
     })
   }
 
@@ -258,14 +283,18 @@ export function ResultsTable({ rows, hidePriority, toolbar }: Props) {
                     column={column}
                     prioValues={prioValues}
                     prioFilter={prioFilter}
-                    machineValues={machineValues}
-                    machineFilter={machineFilter}
-                    search={search}
+                    listValues={column.filter === 'list' ? listValues[column.id as ListKey] : []}
+                    listSelected={column.filter === 'list' ? listFilters[column.id as ListKey] : []}
+                    listQuery={column.filter === 'list' ? listQuery[column.id as ListKey] : ''}
                     onResetPrio={() => setPrioFilter([])}
                     onTogglePrio={togglePrio}
-                    onResetMachines={() => setMachineFilter([])}
-                    onToggleMachine={toggleMachine}
-                    onSearch={(id, value) => setSearch((current) => ({ ...current, [id]: value }))}
+                    onResetList={() =>
+                      setListFilters((current) => ({ ...current, [column.id]: [] }))
+                    }
+                    onToggleList={(value) => toggleList(column.id as ListKey, value)}
+                    onListQuery={(value) =>
+                      setListQuery((current) => ({ ...current, [column.id]: value }))
+                    }
                     onClose={() => setOpenColumn(null)}
                   />
                 ) : null}
@@ -326,30 +355,38 @@ function FilterMenu({
   column,
   prioValues,
   prioFilter,
-  machineValues,
-  machineFilter,
-  search,
+  listValues,
+  listSelected,
+  listQuery,
   onResetPrio,
   onTogglePrio,
-  onResetMachines,
-  onToggleMachine,
-  onSearch,
+  onResetList,
+  onToggleList,
+  onListQuery,
   onClose,
 }: {
   column: Column
   prioValues: string[]
   prioFilter: string[]
-  machineValues: string[]
-  machineFilter: string[]
-  search: { Auftrag: string; Abrufnummer: string }
+  listValues: string[]
+  listSelected: string[]
+  listQuery: string
   onResetPrio: () => void
   onTogglePrio: (value: string) => void
-  onResetMachines: () => void
-  onToggleMachine: (value: string) => void
-  onSearch: (id: SearchKey, value: string) => void
+  onResetList: () => void
+  onToggleList: (value: string) => void
+  onListQuery: (value: string) => void
   onClose: () => void
 }) {
   const alignEnd = column.id === 'Maschine' || column.id === 'Prio'
+  const resetLabel =
+    column.id === 'Maschine' ? 'Alle Maschinen' : column.id === 'Prio' ? 'Alle Prioritäten' : 'Filter zurücksetzen'
+  const emptyLabel = column.id === 'Maschine' ? 'Keine Maschinen in der Liste.' : 'Keine Werte in der Liste.'
+  const query = listQuery.trim().toLowerCase()
+  const shownValues = query
+    ? listValues.filter((value) => value.toLowerCase().includes(query))
+    : listValues
+
   return (
     <div
       className={cn(
@@ -368,7 +405,7 @@ function FilterMenu({
               onClose()
             }}
           >
-            Alle Prioritäten
+            {resetLabel}
           </button>
           {prioValues.map((value) => {
             const selected = prioFilter.length === 0 || prioFilter.includes(value)
@@ -382,48 +419,39 @@ function FilterMenu({
         </>
       ) : null}
 
-      {column.filter === 'machines' ? (
+      {column.filter === 'list' ? (
         <>
           <button
             type="button"
             className="flex h-8 w-full items-center px-3 text-left text-xs text-muted-foreground hover:bg-secondary"
             onClick={() => {
-              onResetMachines()
+              onResetList()
               onClose()
             }}
           >
-            Alle Maschinen
+            {resetLabel}
           </button>
-          {machineValues.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-muted-foreground">Keine Maschinen in der Liste.</p>
+          {listValues.length >= LIST_SEARCH_THRESHOLD ? (
+            <div className="px-3 pb-2">
+              <input
+                className="h-8 w-full rounded-[var(--radius-button)] border border-border bg-background px-2 text-xs outline-none"
+                value={listQuery}
+                onChange={(event) => onListQuery(event.target.value)}
+                placeholder="Liste durchsuchen"
+              />
+            </div>
+          ) : null}
+          {shownValues.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-muted-foreground">{emptyLabel}</p>
           ) : (
-            machineValues.map((value) => (
+            shownValues.map((value) => (
               <label key={value} className="flex h-8 cursor-pointer items-center gap-2 px-3 text-xs hover:bg-secondary">
-                <input type="checkbox" checked={machineFilter.includes(value)} onChange={() => onToggleMachine(value)} />
+                <input type="checkbox" checked={listSelected.includes(value)} onChange={() => onToggleList(value)} />
                 <span className="truncate">{value}</span>
               </label>
             ))
           )}
         </>
-      ) : null}
-
-      {column.filter === 'search' ? (
-        <div className="flex flex-col gap-2 px-3">
-          <input
-            className="h-9 w-full rounded-[var(--radius-button)] border border-border bg-background px-3 text-sm outline-none"
-            value={search[column.id as SearchKey]}
-            onChange={(event) => onSearch(column.id as SearchKey, event.target.value)}
-            placeholder={`${column.label} suchen`}
-            autoFocus
-          />
-          <button
-            type="button"
-            className="h-8 text-left text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => onSearch(column.id as SearchKey, '')}
-          >
-            Filter zurücksetzen
-          </button>
-        </div>
       ) : null}
     </div>
   )

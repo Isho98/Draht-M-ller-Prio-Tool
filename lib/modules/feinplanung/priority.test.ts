@@ -7,7 +7,7 @@ import {
   mergeFeinplanungSettings,
   normalizeWeekdayCapacity,
 } from './settings'
-import { matchesIgnore } from './machines'
+import { machineNamesFromDisplay, matchesIgnore } from './machines'
 import { hoursOnWeekday } from './calendar'
 import { prioritizeOrders } from './service'
 import type { PlanningOrder } from './types'
@@ -151,5 +151,15 @@ describe('prioritizeOrders settings', () => {
     })
     expect(hours).toBe(20)
     expect(hoursOnWeekday(new Date(2026, 8, 5), normalizeWeekdayCapacity({ saturday: 8 }))).toBe(8)
+  })
+})
+
+describe('machineNamesFromDisplay', () => {
+  it('keeps machine names when hours use a German decimal comma', () => {
+    expect(machineNamesFromDisplay('MG930 (6,5 Std), Safan-3 (2,5 Std), Dalex201 (4,3 Std)')).toEqual([
+      'MG930',
+      'Safan-3',
+      'Dalex201',
+    ])
   })
 })

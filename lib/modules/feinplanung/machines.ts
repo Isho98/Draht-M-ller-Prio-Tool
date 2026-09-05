@@ -62,8 +62,12 @@ export function formatHours(value: number): string {
 
 export function machineNamesFromDisplay(value: string): string[] {
   if (!value.trim() || value.trim() === '—') return []
+  const matches = [...value.matchAll(/([^,()]+?)\s*\(([^)]*)\)/g)]
+  if (matches.length > 0) {
+    return matches.map((match) => match[1].trim()).filter(Boolean)
+  }
   return value
-    .split(',')
-    .map((part) => part.replace(/\s*\([^)]*\)\s*$/, '').trim())
-    .filter(Boolean)
+    .split(/[;,]/)
+    .map((part) => part.trim())
+    .filter((part) => part && part !== '—')
 }
